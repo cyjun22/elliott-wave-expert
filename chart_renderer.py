@@ -125,15 +125,17 @@ class ChartRenderer:
         # 저장
         if save_path is None:
             import tempfile
-            save_path = tempfile.mktemp(suffix='.png')
-        
+            tmp = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
+            save_path = tmp.name
+            tmp.close()
+
         plt.savefig(save_path, dpi=150, facecolor=fig.get_facecolor())
-        
+
         if show:
             plt.show()
         else:
             plt.close()
-        
+
         return save_path
     
     def _draw_candlestick(self, ax, df: pd.DataFrame):
@@ -283,11 +285,13 @@ class ChartRenderer:
         
         if save_path is None:
             import tempfile
-            save_path = tempfile.mktemp(suffix='.png')
-        
+            tmp = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
+            save_path = tmp.name
+            tmp.close()
+
         plt.savefig(save_path, dpi=150, facecolor=fig.get_facecolor())
         plt.close()
-        
+
         return save_path
 
 

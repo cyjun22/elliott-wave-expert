@@ -105,16 +105,24 @@ class WaveValidator:
                 violations.append(f"Rule 3: Wave 4 ({w4.end.price:,.0f}) overlaps Wave 1 ({w1.end.price:,.0f})")
                 confidence -= 0.3
         
-        # Guidelines (warnings, not violations)
+        # Guidelines — apply graduated confidence penalties
         # Wave 3 is often the longest
         if w3.size < w1.size and w3.size < w5.size:
-            warnings.append("Wave 3 is not longest (guideline)")
-        
-        # Wave 2 typically retraces 50-61.8% of Wave 1
+            warnings.append("Wave 3 is not longest (guideline, -5% confidence)")
+            confidence -= 0.05
+
+        # Wave 2 typically retraces 50-61.8% of Wave 1 (alternation guideline)
         w2_retrace = w2.size / w1.size if w1.size > 0 else 0
         if w2_retrace < 0.382 or w2_retrace > 0.786:
-            warnings.append(f"Wave 2 retracement ({w2_retrace:.1%}) outside typical 38.2-78.6%")
-        
+            warnings.append(f"Wave 2 retracement ({w2_retrace:.1%}) outside typical 38.2-78.6% (-10% confidence)")
+            confidence -= 0.10
+
+        # Volume guideline: Wave 3 should have stronger momentum
+        # (structural check only — actual volume validation is in subwave_analyzer)
+        if w3.size > 0 and w1.size > 0 and w3.size < w1.size * 0.8:
+            warnings.append("Wave 3 momentum weaker than Wave 1 (-10% confidence)")
+            confidence -= 0.10
+
         # Invalidation level: Wave 1 start
         invalidation = w1.start.price
         

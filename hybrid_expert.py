@@ -200,10 +200,11 @@ class HybridElliottExpert:
     
     def _get_cycle_estimate(self, df: pd.DataFrame, symbol: str) -> CycleEstimate:
         """사이클 기간 추정"""
+        df = df.copy()
         # 컬럼 정규화
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = [c[0].lower() for c in df.columns]
-        
+
         atl_idx = df['low'].idxmin()
         atl_price = df['low'].min()
         ath_idx = df['high'].idxmax()

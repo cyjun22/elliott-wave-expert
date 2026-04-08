@@ -157,15 +157,15 @@ class PatternRecognizer:
         if len(pivots) < 6:
             return None
         
-        # 피벗에서 파동 생성
+        # 피벗에서 파동 생성 (1-indexed: Wave 1 through Wave 5)
         waves = []
-        labels = ["0", "1", "2", "3", "4", "5"]
-        
+        labels = ["1", "2", "3", "4", "5"]
+
         for i in range(min(6, len(pivots))):
             if i == 0:
                 continue
             waves.append(Wave(
-                label=labels[i],
+                label=labels[i - 1],
                 start=pivots[i-1],
                 end=pivots[i]
             ))

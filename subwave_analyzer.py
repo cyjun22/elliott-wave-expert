@@ -164,8 +164,10 @@ class SubWaveAnalyzer:
         sub_labels = ['(1)', '(2)', '(3)', '(4)', '(5)']
         label_idx = 0
         
-        # 상승파인지 하락파인지 확인
-        is_upward = parent_wave in ['1', '3', '5']
+        # 상승파인지 하락파인지 — 실제 가격 변화로 판단
+        start_price = segment[close_col].iloc[0]
+        end_price = segment[close_col].iloc[-1]
+        is_upward = end_price > start_price
         
         for i in range(window, len(segment) - window):
             date = segment.index[i]

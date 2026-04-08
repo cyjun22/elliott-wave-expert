@@ -104,13 +104,20 @@ class ElliottWaveAnalyzer:
         """
         # 데이터 정규화
         df = self._normalize_df(df)
-        
+
         # 시작일 필터
         if start_date:
             df = df[df.index >= pd.to_datetime(start_date)]
-        
+
         if len(df) < 10:
             return self._empty_analysis(symbol, timeframe, "Insufficient data")
+
+        # 입력 데이터 품질 검증
+        data_issues = self._validate_input_data(df)
+        if data_issues:
+            for issue in data_issues:
+                if "Insufficient data" in issue:
+                    return self._empty_analysis(symbol, timeframe, issue)
         
         # 1. 피벗 감지
         threshold = self.threshold or self._auto_threshold(df)
@@ -230,21 +237,29 @@ class ElliottWaveAnalyzer:
         
         if total_days < 25:
             return self._empty_analysis(symbol, timeframe, "Cycle too short for segmentation")
-        
-        segment_size = total_days // 5
-        
+
+        # Fibonacci-proportioned segments: 1 : 0.618 : 1.618 : 0.618 : 1
+        fib_ratios = [1.0, 0.618, 1.618, 0.618, 1.0]
+        total_ratio = sum(fib_ratios)  # 4.854
+        fib_sizes = [int(total_days * r / total_ratio) for r in fib_ratios]
+        # Ensure segments sum to total_days
+        fib_sizes[-1] = total_days - sum(fib_sizes[:-1])
+
         segments = []
-        for i in range(5):
-            start = i * segment_size
-            end = (i + 1) * segment_size if i < 4 else total_days
-            segment = cycle_df.iloc[start:end]
-            
+        offset = 0
+        for seg_size in fib_sizes:
+            seg_size = max(seg_size, 1)  # at least 1 bar
+            segment = cycle_df.iloc[offset:offset + seg_size]
+            if len(segment) == 0:
+                segment = cycle_df.iloc[offset:offset + 1]
+
             segments.append({
                 'high': segment['high'].max(),
                 'high_date': segment['high'].idxmax(),
                 'low': segment['low'].min(),
                 'low_date': segment['low'].idxmin()
             })
+            offset += seg_size
         
         # 4. 파동 할당 (원래 테스트 로직 그대로)
         # (label, pivot_type, price, date)
@@ -472,12 +487,39 @@ class ElliottWaveAnalyzer:
         # Clamp to reasonable bounds
         return max(0.03, min(0.20, adjusted_threshold))
     
+    def _validate_input_data(self, df: pd.DataFrame) -> List[str]:
+        """Validate OHLCV data quality before analysis"""
+        issues = []
+        if len(df) < 30:
+            issues.append(f"Insufficient data: {len(df)} candles (minimum 30)")
+        # Check for missing values
+        null_count = df.isnull().sum().sum()
+        if null_count > 0:
+            issues.append(f"Missing values detected: {null_count} null entries")
+        # Check for duplicate timestamps
+        if hasattr(df.index, 'duplicated'):
+            dup_count = df.index.duplicated().sum()
+            if dup_count > 0:
+                issues.append(f"Duplicate timestamps: {dup_count}")
+        # Check for price anomalies (>50% single-candle moves)
+        closes = df['close'].values
+        pct_changes = pd.Series(closes).pct_change().abs()
+        extreme_moves = (pct_changes > 0.5).sum()
+        if extreme_moves > 0:
+            issues.append(f"Extreme price moves detected: {extreme_moves} candles with >50% change")
+        return issues
+
     def _detect_direction(self, df: pd.DataFrame) -> WaveDirection:
-        """주요 추세 방향 감지"""
-        first_price = df['close'].iloc[0]
-        last_price = df['close'].iloc[-1]
-        
-        return WaveDirection.UP if last_price > first_price else WaveDirection.DOWN
+        """Multi-period trend detection using SMA slope"""
+        closes = df['close'].values
+        window = min(20, len(closes) // 3)
+        if window < 3:
+            return WaveDirection.UP if closes[-1] > closes[0] else WaveDirection.DOWN
+        sma = pd.Series(closes).rolling(window).mean().dropna().values
+        if len(sma) < 2:
+            return WaveDirection.UP if closes[-1] > closes[0] else WaveDirection.DOWN
+        slope = (sma[-1] - sma[0]) / len(sma)
+        return WaveDirection.UP if slope > 0 else WaveDirection.DOWN
     
     def _calculate_targets(
         self, 

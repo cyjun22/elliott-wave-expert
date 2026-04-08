@@ -4,17 +4,22 @@ Elliott Wave Analysis Package
 범용 엘리엇 파동 분석 시스템 (하이브리드: Algorithm + LLM + RAG)
 """
 
+import logging
+
 from .core import ElliottWaveAnalyzer, WaveAnalysis
 from .patterns import PatternType, PatternRecognizer, Wave, Pivot
 from .validation import WaveValidator
 from .targets import TargetCalculator
+
+_logger = logging.getLogger(__name__)
 
 # Hybrid Expert (LLM + RAG)
 try:
     from .hybrid_expert import HybridElliottExpert, HybridAnalysisResult
     from .llm_validator import LLMWaveValidator, ValidationResult, CycleEstimate
     HYBRID_AVAILABLE = True
-except ImportError:
+except ImportError as e:
+    _logger.warning("Hybrid/LLM modules not available: %s", e)
     HYBRID_AVAILABLE = False
     HybridElliottExpert = None
     LLMWaveValidator = None

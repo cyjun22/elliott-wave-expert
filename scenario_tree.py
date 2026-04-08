@@ -105,24 +105,28 @@ class ScenarioTree:
         }
 
 
+DEFAULT_MULTIPLIERS = {
+    'fib_bounce': 1.3,
+    'fib_break': 0.7,
+    'volume_surge': 1.2,
+    'RSI_divergence': 1.4,
+}
+
+
 class ProbabilityEngine:
     """
     베이지안 확률 업데이트 엔진
-    
+
     - 기술적 확인으로 확률 조정
     - 피보나치 반응 가중치
+    - Multipliers are configurable for calibration
     """
-    
-    # 확률 조정 가중치
-    FIB_BOUNCE_WEIGHT = 1.3      # 피보나치 레벨에서 반등
-    FIB_BREAK_WEIGHT = 0.7       # 피보나치 레벨 이탈
-    VOLUME_CONFIRM_WEIGHT = 1.2  # 볼륨 확인
-    RSI_DIVERGENCE_WEIGHT = 1.4  # RSI 다이버전스
-    
+
     # 주요 피보나치 레벨
     FIB_LEVELS = [0.236, 0.382, 0.5, 0.618, 0.786, 1.0, 1.272, 1.618, 2.618]
-    
-    def __init__(self):
+
+    def __init__(self, multipliers: Dict[str, float] = None):
+        self.multipliers = {**DEFAULT_MULTIPLIERS, **(multipliers or {})}
         self.update_log: List[Dict] = []
     
     def update_probability(
@@ -152,13 +156,13 @@ class ProbabilityEngine:
         
         # 이벤트 기반 조정
         if 'fib_bounce' in events:
-            multiplier *= self.FIB_BOUNCE_WEIGHT
+            multiplier *= self.multipliers.get('fib_bounce', 1.3)
         if 'fib_break' in events:
-            multiplier *= self.FIB_BREAK_WEIGHT
+            multiplier *= self.multipliers.get('fib_break', 0.7)
         if 'volume_confirm' in events:
-            multiplier *= self.VOLUME_CONFIRM_WEIGHT
+            multiplier *= self.multipliers.get('volume_surge', 1.2)
         if 'rsi_divergence' in events:
-            multiplier *= self.RSI_DIVERGENCE_WEIGHT
+            multiplier *= self.multipliers.get('RSI_divergence', 1.4)
         
         # 가격 위치 기반 조정
         position_factor = self._calc_position_factor(scenario, market_state.current_price)

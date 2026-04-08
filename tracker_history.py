@@ -219,11 +219,13 @@ class WaveTrackerHistory:
     def get_training_data(self, symbol: str = None) -> pd.DataFrame:
         """NN 트레이닝용 데이터 추출"""
         query = "SELECT * FROM training_features"
+        params = []
         if symbol:
-            query += f" WHERE symbol = '{symbol}'"
-        
+            query += " WHERE symbol = ?"
+            params.append(symbol)
+
         with sqlite3.connect(self.db_path) as conn:
-            return pd.read_sql_query(query, conn)
+            return pd.read_sql_query(query, conn, params=params)
     
     def get_probability_history(
         self,
@@ -252,7 +254,7 @@ class WaveTrackerHistory:
     def get_scenario_accuracy(self, symbol: str = None) -> Dict:
         """시나리오 정확도 통계"""
         query = """
-            SELECT 
+            SELECT
                 scenario_name,
                 COUNT(*) as total,
                 SUM(CASE WHEN actual_outcome = 'hit_target' THEN 1 ELSE 0 END) as hits,
@@ -260,11 +262,13 @@ class WaveTrackerHistory:
                 AVG(profit_loss) as avg_pnl
             FROM scenario_outcomes
         """
+        params = []
         if symbol:
-            query += f" WHERE symbol = '{symbol}'"
+            query += " WHERE symbol = ?"
+            params.append(symbol)
         query += " GROUP BY scenario_name"
-        
+
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
-            cursor = conn.execute(query)
+            cursor = conn.execute(query, params)
             return {row['scenario_name']: dict(row) for row in cursor.fetchall()}

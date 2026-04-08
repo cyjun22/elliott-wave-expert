@@ -83,7 +83,8 @@ class StrategyExecutor:
                 continue
                 
             scenario_id = scenario.get('id', 'unknown')
-            
+            scenario_prob = scenario.get('probability', 0.25)
+
             # 목표가들
             for target in scenario.get('targets', []):
                 price = target.get('price', target) if isinstance(target, dict) else target
@@ -91,9 +92,10 @@ class StrategyExecutor:
                     'price': price,
                     'scenario': scenario_id,
                     'type': 'target',
-                    'view': scenario.get('view', 'neutral')
+                    'view': scenario.get('view', 'neutral'),
+                    'probability': scenario_prob
                 })
-            
+
             # 무효화 레벨
             inv_price = scenario.get('invalidation_price')
             if inv_price:
@@ -101,16 +103,18 @@ class StrategyExecutor:
                     'price': inv_price,
                     'scenario': scenario_id,
                     'type': 'invalidation',
-                    'view': scenario.get('view', 'neutral')
+                    'view': scenario.get('view', 'neutral'),
+                    'probability': scenario_prob
                 })
-            
+
             # 피보나치 레벨
             for fib in scenario.get('fibonacci_levels', []):
                 price_levels.append({
                     'price': fib.get('price', fib),
                     'scenario': scenario_id,
                     'type': 'fibonacci',
-                    'view': scenario.get('view', 'neutral')
+                    'view': scenario.get('view', 'neutral'),
+                    'probability': scenario_prob
                 })
         
         if not price_levels:
@@ -156,8 +160,16 @@ class StrategyExecutor:
             scenarios = list(set(l['scenario'] for l in cluster))
             types = list(set(l['type'] for l in cluster))
             
-            # 강도 계산: 참여 시나리오 수 + 타입 다양성
-            strength = min(1.0, (len(scenarios) * 0.3 + len(types) * 0.2))
+            # 강도 계산: weighted by scenario probability + type diversity
+            # Collect max probability per contributing scenario
+            scenario_probs = {}
+            for lvl in cluster:
+                s_id = lvl.get('scenario', 'unknown')
+                prob = lvl.get('probability', 0.25)
+                if s_id not in scenario_probs or prob > scenario_probs[s_id]:
+                    scenario_probs[s_id] = prob
+            prob_sum = sum(scenario_probs.values())
+            strength = min(1.0, prob_sum * 0.5 + len(types) * 0.15)
             
             # 타입 결정
             if 'invalidation' in types:

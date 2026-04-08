@@ -12,10 +12,10 @@ from dataclasses import dataclass, field
 from datetime import datetime
 import pandas as pd
 from dotenv import load_dotenv
-from openai import AzureOpenAI
 
 load_dotenv()
 
+from experts.elliott.llm_utils import safe_parse_json as _safe_parse_json, get_shared_azure_client
 from experts.elliott.rag_expert import RAGExpert, ExpertMessage, WaveScenario
 from experts.elliott.data_validator import DataValidator
 from experts.elliott.chart_renderer import ChartRenderer
@@ -26,55 +26,6 @@ try:
     ALGO_AVAILABLE = True
 except ImportError:
     ALGO_AVAILABLE = False
-
-
-def _safe_parse_json(content: str, fallback: Dict = None) -> Tuple[Dict, bool]:
-    """
-    Robust JSON parsing with multiple fallback strategies.
-    
-    Args:
-        content: Raw LLM response string
-        fallback: Default value on failure
-        
-    Returns:
-        Tuple of (parsed_dict, success_flag)
-    """
-    if fallback is None:
-        fallback = {}
-    
-    # Strategy 1: Extract JSON from markdown code blocks
-    patterns = [
-        r'```json\s*([\s\S]*?)```',  # ```json ... ```
-        r'```\s*([\s\S]*?)```',       # ``` ... ```
-        r'\{[\s\S]*\}',               # Raw JSON object
-    ]
-    
-    for pattern in patterns:
-        match = re.search(pattern, content)
-        if match:
-            json_str = match.group(1) if '```' in pattern else match.group(0)
-            try:
-                return json.loads(json_str.strip()), True
-            except json.JSONDecodeError:
-                continue
-    
-    # Strategy 2: Try direct parsing
-    try:
-        return json.loads(content.strip()), True
-    except json.JSONDecodeError:
-        pass
-    
-    # Strategy 3: Basic repair (trailing commas, single quotes)
-    try:
-        repaired = content.strip()
-        repaired = re.sub(r',\s*}', '}', repaired)  # Remove trailing commas
-        repaired = re.sub(r',\s*]', ']', repaired)
-        repaired = repaired.replace("'", '"')       # Single to double quotes
-        return json.loads(repaired), True
-    except json.JSONDecodeError:
-        pass
-    
-    return fallback, False
 
 
 @dataclass
@@ -444,25 +395,23 @@ JSON 형식으로만 답변:
 """
         
         try:
-            client = AzureOpenAI(
-                azure_endpoint=os.environ.get('AZURE_OPENAI_ENDPOINT'),
-                api_key=os.environ.get('AZURE_OPENAI_API_KEY'),
-                api_version='2024-02-15-preview'
-            )
+            client = get_shared_azure_client()
+            if client is None:
+                return {'valid': False, 'issues': ['Azure OpenAI credentials not configured'], 'suggestions': [], 'probability': 0}
             response = client.chat.completions.create(
                 model='gpt-4o',
                 messages=[{'role': 'user', 'content': prompt}],
                 temperature=0.3,
                 max_tokens=1000
             )
-            
+
             content = response.choices[0].message.content
             parsed, success = _safe_parse_json(
-                content, 
+                content,
                 fallback={'valid': False, 'issues': ['JSON parsing failed'], 'suggestions': [], 'probability': 0}
             )
             return parsed
-            
+
         except Exception as e:
             return {'valid': False, 'issues': [str(e)], 'suggestions': [], 'probability': 0}
     
@@ -541,18 +490,16 @@ JSON으로 응답:
 """
         
         try:
-            client = AzureOpenAI(
-                azure_endpoint=os.environ.get('AZURE_OPENAI_ENDPOINT'),
-                api_key=os.environ.get('AZURE_OPENAI_API_KEY'),
-                api_version='2024-02-15-preview'
-            )
+            client = get_shared_azure_client()
+            if client is None:
+                return {'corrected_waves': waves, 'explanation': 'Azure OpenAI credentials not configured'}
             response = client.chat.completions.create(
                 model='gpt-4o',
                 messages=[{'role': 'user', 'content': prompt}],
                 temperature=0.3,
                 max_tokens=1500
             )
-            
+
             content = response.choices[0].message.content
             parsed, success = _safe_parse_json(
                 content,

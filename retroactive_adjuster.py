@@ -75,7 +75,7 @@ class RetroactiveAdjuster:
                 try:
                     with open(history_file, 'r') as f:
                         self.conflict_history = json.load(f)
-                except:
+                except (json.JSONDecodeError, IOError, OSError):
                     self.conflict_history = []
     
     def _save_history(self):

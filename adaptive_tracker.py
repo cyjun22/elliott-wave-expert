@@ -18,6 +18,14 @@ from datetime import datetime
 from enum import Enum
 
 
+class ScenarioType:
+    """Standard scenario name constants"""
+    ABC_CORRECTION = "ABC Correction"
+    EXTENDED_5TH = "Extended 5th Wave"
+    NEW_SUPERCYCLE = "New Supercycle Wave 1"
+    WAVE_5_IN_PROGRESS = "Wave 5 In Progress"
+
+
 class WaveStatus(Enum):
     """파동 확정 상태"""
     CONFIRMED = "confirmed"      # 확정 (변경 불가)
@@ -160,26 +168,26 @@ class AdaptiveWaveTracker:
         """시나리오 자동 전환"""
         if not self.active_scenarios:
             return None
-        
+
         # ABC Correction 무효화 시 → Extended 5th 활성화
-        if "ABC Correction" in invalidated:
+        if ScenarioType.ABC_CORRECTION in invalidated:
             for s in self.active_scenarios:
                 if "Extended" in s.name:
                     s.probability = 0.7  # 확률 상향
                     return s.name
-        
+
         # Extended 5th 무효화 시 → ABC Correction 활성화
-        if "Extended 5th" in invalidated:
+        if ScenarioType.EXTENDED_5TH in invalidated:
             for s in self.active_scenarios:
                 if "ABC" in s.name or "Correction" in s.name:
                     s.probability = 0.7
                     return s.name
-        
+
         # 남은 시나리오 중 가장 높은 확률
         if self.active_scenarios:
             best = max(self.active_scenarios, key=lambda x: x.probability)
             return best.name
-        
+
         return None
     
     def _should_reclassify(self, candle: Dict) -> bool:

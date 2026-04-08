@@ -256,15 +256,16 @@ class MultiTimeframeValidator:
             confidence += 0.2
             
             # Wave 3 > Wave 1 검증
+            w3_move = 0
             if '3' in waves and '1' in waves and '0' in waves:
                 w1_move = waves['1']['price'] - waves['0']['price']
                 w3_move = waves['3']['price'] - waves['2']['price']
-                
+
                 if abs(w3_move) > abs(w1_move):
                     confidence += 0.15
-                    
+
             # Wave 3이 가장 짧지 않음 검증
-            if '5' in waves:
+            if '5' in waves and w3_move != 0:
                 w5_move = waves['5']['price'] - waves['4']['price']
                 if abs(w3_move) > abs(w5_move):
                     confidence += 0.1
