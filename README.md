@@ -4,7 +4,7 @@
 > Elliott Wave Theory-based Market Scenario Analysis Engine
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)]()
-[![Tests](https://img.shields.io/badge/tests-70%20passed-green.svg)]()
+[![Tests](https://img.shields.io/badge/tests-98%20passed-green.svg)]()
 [![Patterns](https://img.shields.io/badge/patterns-12%2F12-green.svg)]()
 
 ---
@@ -150,6 +150,35 @@ visualizer = WaveVisualizer(tracker)
 fig = visualizer.get_scenario_chart(symbol="BTC", timeframe="1D")
 fig.savefig("btc_wave_analysis.png", dpi=150, bbox_inches="tight")
 ```
+
+### 시각적 보고서 생성
+
+매 실행마다 동일한 포맷의 HTML 분석 보고서를 생성한다.
+
+```bash
+# CLI로 보고서 생성
+python report_generator.py                     # → reports/elliott_report_YYYYMMDD_HHMMSS.html
+python report_generator.py -o analysis.html    # 지정 경로
+python report_generator.py --json              # JSON 데이터만
+```
+
+```python
+# Python API
+from report_generator import ReportGenerator
+
+gen = ReportGenerator(project_root=".")
+gen.generate("output/report.html")
+gen.generate_json("output/report.json")
+```
+
+보고서에 포함되는 항목:
+- **Quality Score** — 독스트링 커버리지, 테스트 통과율, 패턴 구현율, 보안 이슈 기반 종합 점수 (0-100)
+- **KPI 대시보드** — 파일 수, 총 라인, 클래스/함수 수, 패턴 구현 현황, 테스트 통과율
+- **Pattern Implementation** — 12종 패턴별 구현 상태 + 테스트 커버리지
+- **Module Architecture** — 6개 모듈 그룹 시각화 (Core, Tracking, AI, Multi-agent, Visualization, Execution)
+- **File Metrics** — 파일별 라인 수, 클래스/함수 수, 사이즈 바, 독스트링 비율
+- **Git History** — 커밋별 변경 통계 (+/- 라인)
+- **Security Scan** — bare except, SQL injection, eval/exec 탐지
 
 ---
 

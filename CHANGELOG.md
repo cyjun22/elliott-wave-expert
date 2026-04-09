@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## [2.1.0] - 2026-04-08
+
+### 📊 Report Generator
+- `report_generator.py` 신규 생성: 일관된 시각적 HTML 보고서 생성 모듈
+- **Quality Score Ring**: 독스트링 커버리지 + 테스트 통과율 + 패턴 구현율 + 보안 이슈 기반 종합 점수 (0-100)
+- **KPI Dashboard**: 6개 핵심 지표 카드 (파일 수, 총 라인, 클래스, 함수, 패턴, 테스트)
+- **Pattern Grid**: 12종 패턴별 구현/테스트 상태 시각화
+- **Module Architecture Map**: 6개 그룹 시각화 (Core, Tracking, AI/LLM, Multi-agent, Visualization, Execution)
+- **File Metrics Table**: 파일별 라인 수 + 크기 바 + 독스트링 비율
+- **Git History**: 커밋별 insertions/deletions 통계
+- **Security Scan**: bare except, SQL injection, eval/exec 자동 탐지
+- CLI 지원: `python report_generator.py [-o PATH] [--json] [--root DIR]`
+- `__main__.py` 업데이트: `python -m elliott report` 커맨드 추가
+- 테스트 22개 추가 (`tests/test_report.py`): 수집기, 렌더러, 통합, 일관성 검증
+
 ## [2.0.0] - 2026-04-08
 
 ### 🏗️ Architecture (Breaking)
