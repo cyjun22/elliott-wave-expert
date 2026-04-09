@@ -28,6 +28,21 @@ except ImportError as e:
     HybridElliottExpert = None
     LLMWaveValidator = None
 
+# v3.0.0 — Forecast System
+try:
+    from .forecast_engine import ForecastEngine, ForecastResult, ForecastPath
+    from .timeframe_linker import TimeframeLinker
+    from .realtime_loop import RealtimeLoop
+    from .wave_chart import WaveChart
+    FORECAST_AVAILABLE = True
+except ImportError as e:
+    _logger.warning("Forecast modules not available: %s", e)
+    FORECAST_AVAILABLE = False
+    ForecastEngine = None
+    TimeframeLinker = None
+    RealtimeLoop = None
+    WaveChart = None
+
 __all__ = [
     # 기본
     'ElliottWaveAnalyzer',
@@ -43,4 +58,12 @@ __all__ = [
     'HybridAnalysisResult',
     'LLMWaveValidator',
     'HYBRID_AVAILABLE',
+    # 예측 시스템 (v3.0.0)
+    'ForecastEngine',
+    'ForecastResult',
+    'ForecastPath',
+    'TimeframeLinker',
+    'RealtimeLoop',
+    'WaveChart',
+    'FORECAST_AVAILABLE',
 ]
