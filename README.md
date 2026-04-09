@@ -141,7 +141,45 @@ print(f"LLM 보정 신뢰도: {result.llm_confidence:.1%}")
 print(f"최종 시나리오: {result.primary_scenario}")
 ```
 
-### 차트 생성
+### 봉차트 파동 카운트
+
+캔들스틱 차트 위에 파동 번호를 시각적으로 표시한다. 매번 동일한 포맷.
+
+```python
+from wave_chart import WaveChart
+
+chart = WaveChart()
+
+# 수동 파동 포인트 지정
+chart.plot_manual(df, waves=[
+    {"label": "0", "date": "2022-11-21", "price": 15599, "type": "low"},
+    {"label": "1", "date": "2023-07-13", "price": 31815, "type": "high"},
+    {"label": "2", "date": "2023-09-11", "price": 24797, "type": "low"},
+    {"label": "3", "date": "2024-03-14", "price": 73750, "type": "high"},
+    {"label": "4", "date": "2024-08-05", "price": 49121, "type": "low"},
+    {"label": "5", "date": "2025-01-20", "price": 109115, "type": "high"},
+], symbol="BTC-USD", save_path="btc_waves.png")
+
+# core.py 분석 결과에서 자동 추출
+chart.plot(df, analysis=analysis, save_path="auto_waves.png")
+```
+
+```bash
+# CLI 데모
+python wave_chart.py --sample
+python wave_chart.py --csv data.csv --symbol ETH-USD -o eth_waves.png
+```
+
+표시 항목:
+- 캔들스틱 (다크 테마, 상승 초록 / 하락 빨간)
+- 파동 번호 원형 배지 (파동별 고유 색상)
+- 파동 간 지그재그 연결선
+- 각 피봇 가격 태그
+- 거래량 서브플롯
+- 무효화 레벨 수평선 (선택)
+- 목표가 영역 (선택)
+
+### 시나리오 경로 차트
 
 ```python
 from elliott_wave.wave_visualization import WaveVisualizer
