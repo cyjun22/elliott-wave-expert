@@ -6,12 +6,16 @@ Elliott Wave Analysis Package
 
 import logging
 
-from .core import ElliottWaveAnalyzer, WaveAnalysis
-from .patterns import PatternType, PatternRecognizer, Wave, Pivot
-from .validation import WaveValidator
-from .targets import TargetCalculator
-
 _logger = logging.getLogger(__name__)
+
+try:
+    from .core import ElliottWaveAnalyzer, WaveAnalysis
+    from .patterns import PatternType, PatternRecognizer, Wave, Pivot
+    from .validation import WaveValidator
+    from .targets import TargetCalculator
+except ImportError:
+    # 패키지 컨텍스트 없이 직접 실행/임포트 시 (예: pytest에서)
+    pass
 
 # Hybrid Expert (LLM + RAG)
 try:

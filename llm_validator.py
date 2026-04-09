@@ -5,9 +5,14 @@ LLM Wave Validator - Elliott Wave 검증 및 교정
 """
 
 import json
+import logging
 from typing import Dict, List, Optional, Any
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
+
+from .llm_utils import safe_parse_json
+
+_logger = logging.getLogger(__name__)
 
 # LLM 클라이언트
 try:
@@ -22,6 +27,44 @@ try:
     RAG_AVAILABLE = True
 except ImportError:
     RAG_AVAILABLE = False
+
+
+@dataclass
+class LLMUsageTracker:
+    """LLM 호출 토큰/비용 추적"""
+    total_tokens: int = 0
+    total_cost_estimate: float = 0.0
+    call_count: int = 0
+    _history: List[Dict] = field(default_factory=list)
+
+    # 모델별 1K 토큰 예상 비용 (USD)
+    COST_PER_1K = {
+        "gemini-flash": 0.0001,
+        "gemini-pro": 0.0005,
+        "default": 0.0003,
+    }
+
+    def record(self, model: str, tokens: int) -> None:
+        """호출 기록 추가"""
+        rate = self.COST_PER_1K.get(model, self.COST_PER_1K["default"])
+        cost = (tokens / 1000) * rate
+        self.total_tokens += tokens
+        self.total_cost_estimate += cost
+        self.call_count += 1
+        self._history.append({
+            "model": model,
+            "tokens": tokens,
+            "cost": cost,
+            "timestamp": datetime.now().isoformat(),
+        })
+
+    def summary(self) -> str:
+        """사용량 요약 문자열"""
+        return (
+            f"LLM Usage: {self.call_count} calls, "
+            f"{self.total_tokens:,} tokens, "
+            f"${self.total_cost_estimate:.4f} est. cost"
+        )
 
 
 @dataclass
@@ -68,12 +111,14 @@ class LLMWaveValidator:
                 self.rag = RAGRetriever()
                 if not self.rag.available:
                     self.rag = None
-            except:
+            except (ImportError, OSError, RuntimeError) as e:
+                _logger.warning("RAG initialization failed: %s", e)
                 self.rag = None
         else:
             self.rag = None
-        
+
         self.available = self.llm is not None
+        self.usage = LLMUsageTracker()
     
     def estimate_cycle_duration(
         self,
@@ -143,7 +188,20 @@ Consider:
             
             # JSON 파싱
             result = self._parse_json(response)
-            
+
+            # 토큰 추적 (응답 길이 기반 추정)
+            est_tokens = len(prompt.split()) + len(response.split())
+            self.usage.record("gemini-flash", est_tokens)
+
+            # 응답 검증
+            if not self._validate_llm_response(
+                result,
+                required_fields=["cycle_months", "confidence"],
+                ranges={"cycle_months": (1, 240), "confidence": (0.0, 1.0)},
+            ):
+                _logger.warning("LLM cycle response failed validation, using fallback")
+                return self._fallback_cycle_estimate(symbol)
+
             return CycleEstimate(
                 cycle_months=result.get('cycle_months', 27),
                 confidence=result.get('confidence', 0.5),
@@ -151,7 +209,7 @@ Consider:
                 llm_used=True
             )
         except Exception as e:
-            print(f"⚠️ LLM cycle estimation failed: {e}")
+            _logger.warning("LLM cycle estimation failed: %s", e)
             return self._fallback_cycle_estimate(symbol)
     
     def validate_wave_structure(
@@ -249,9 +307,28 @@ Do NOT suggest arbitrary prices that are not in this list.
                 temperature=0.2,
                 max_tokens=600
             )
-            
+
             result = self._parse_json(response)
-            
+
+            # 토큰 추적
+            est_tokens = len(prompt.split()) + len(response.split())
+            self.usage.record("gemini-flash", est_tokens)
+
+            # 응답 검증
+            if not self._validate_llm_response(
+                result,
+                required_fields=["is_valid", "confidence"],
+                ranges={"confidence": (0.0, 1.0)},
+            ):
+                _logger.warning("LLM validation response failed field check")
+                return ValidationResult(
+                    is_valid=True,
+                    confidence=0.5,
+                    corrections=[],
+                    reasoning="LLM response validation failed",
+                    llm_used=False,
+                )
+
             return ValidationResult(
                 is_valid=result.get('is_valid', True),
                 confidence=result.get('confidence', 0.5),
@@ -260,7 +337,7 @@ Do NOT suggest arbitrary prices that are not in this list.
                 llm_used=True
             )
         except Exception as e:
-            print(f"⚠️ LLM validation failed: {e}")
+            _logger.warning("LLM validation failed: %s", e)
             return ValidationResult(
                 is_valid=True,
                 confidence=0.5,
@@ -281,21 +358,45 @@ Do NOT suggest arbitrary prices that are not in this list.
         return "\n".join(lines)
     
     def _parse_json(self, response: str) -> Dict:
-        """LLM 응답에서 JSON 추출"""
-        # JSON 블록 찾기
-        if "```json" in response:
-            json_str = response.split("```json")[1].split("```")[0].strip()
-        elif "```" in response:
-            json_str = response.split("```")[1].split("```")[0].strip()
-        elif "{" in response:
-            start = response.find("{")
-            end = response.rfind("}") + 1
-            json_str = response[start:end]
-        else:
-            json_str = response
-        
-        return json.loads(json_str)
-    
+        """LLM 응답에서 JSON 추출 (safe_parse_json 위임)"""
+        result, ok = safe_parse_json(response, fallback={})
+        if not ok:
+            raise json.JSONDecodeError("Failed to parse LLM response", response, 0)
+        return result
+
+    def _validate_llm_response(
+        self,
+        data: Dict,
+        required_fields: List[str],
+        ranges: Optional[Dict[str, tuple]] = None,
+    ) -> bool:
+        """
+        LLM 응답 필드/범위 검증
+
+        Args:
+            data: 파싱된 LLM 응답 딕셔너리
+            required_fields: 필수 키 목록
+            ranges: 키별 (min, max) 범위 검증 (선택)
+
+        Returns:
+            True if valid
+        """
+        for f in required_fields:
+            if f not in data:
+                _logger.warning("LLM response missing required field: %s", f)
+                return False
+        if ranges:
+            for key, (lo, hi) in ranges.items():
+                val = data.get(key)
+                if val is not None and isinstance(val, (int, float)):
+                    if val < lo or val > hi:
+                        _logger.warning(
+                            "LLM response field '%s' = %s out of range [%s, %s]",
+                            key, val, lo, hi,
+                        )
+                        return False
+        return True
+
     def _fallback_cycle_estimate(self, symbol: str) -> CycleEstimate:
         """LLM 없을 때 자산 유형 기반 폴백"""
         symbol_upper = symbol.upper()

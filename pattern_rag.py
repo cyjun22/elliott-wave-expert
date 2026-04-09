@@ -62,8 +62,9 @@ class PatternDatabase:
             self._init_default_patterns()
     
     def _init_default_patterns(self):
-        """기본 BTC 패턴 초기화"""
+        """기본 패턴 초기화 — 12종 패턴 유형별 다양한 자산/시기 커버"""
         default_patterns = [
+            # ===== 1. Impulse (충격파) — 5파 완성 후 ABC 조정 =====
             {
                 "id": "btc_2017_2018",
                 "symbol": "BTC-USD",
@@ -73,7 +74,16 @@ class PatternDatabase:
                 "outcome": "abc_correction",
                 "success": True,
                 "target_hit": 0.85,
-                "metadata": {"decline_depth": 0.84, "correction_duration_days": 365}
+                "metadata": {
+                    "pattern_type": "impulse",
+                    "decline_depth": 0.84,
+                    "correction_duration_days": 365,
+                    "fib_ratios": {"w2_retrace": 0.875, "w3_to_w1": 3.8, "w4_retrace": 0.38, "w5_to_w1": 4.58},
+                    "volume": "w3_highest_volume",
+                    "market_condition": "early_crypto_bull",
+                    "failure_mode": None,
+                    "notes": "교과서적 5파 충격파. W3이 가장 길고 거래량 최대."
+                }
             },
             {
                 "id": "btc_2020_2021",
@@ -84,7 +94,16 @@ class PatternDatabase:
                 "outcome": "abc_correction",
                 "success": True,
                 "target_hit": 0.78,
-                "metadata": {"decline_depth": 0.77, "correction_duration_days": 400}
+                "metadata": {
+                    "pattern_type": "impulse",
+                    "decline_depth": 0.77,
+                    "correction_duration_days": 400,
+                    "fib_ratios": {"w2_retrace": 0.944, "w3_to_w1": 3.537, "w4_retrace": 0.325, "w5_to_w1": 3.704},
+                    "volume": "w3_highest_volume_w5_divergence",
+                    "market_condition": "institutional_adoption",
+                    "failure_mode": None,
+                    "notes": "W5에서 거래량 다이버전스 (W3 대비 감소). 전형적 천장 신호."
+                }
             },
             {
                 "id": "btc_2023_2024",
@@ -95,7 +114,15 @@ class PatternDatabase:
                 "outcome": "abc_correction",
                 "success": False,
                 "target_hit": 0.0,
-                "metadata": {"decline_depth": 0.36, "is_ongoing": True}
+                "metadata": {
+                    "pattern_type": "impulse",
+                    "decline_depth": 0.36,
+                    "is_ongoing": True,
+                    "fib_ratios": {"w2_retrace": 0.387, "w3_to_w1": 3.097, "w4_retrace": 0.354, "w5_to_w1": 3.419},
+                    "volume": "etf_driven_w5",
+                    "market_condition": "etf_approval_cycle",
+                    "notes": "ETF 승인으로 W5 확장. 진행 중."
+                }
             },
             {
                 "id": "eth_2017_2018",
@@ -106,7 +133,15 @@ class PatternDatabase:
                 "outcome": "abc_correction",
                 "success": True,
                 "target_hit": 0.94,
-                "metadata": {"decline_depth": 0.94}
+                "metadata": {
+                    "pattern_type": "impulse",
+                    "decline_depth": 0.94,
+                    "fib_ratios": {"w2_retrace": 0.689, "w3_to_w1": 1.581, "w4_retrace": 0.357, "w5_to_w1": 2.296},
+                    "volume": "parabolic_w5",
+                    "market_condition": "ico_bubble",
+                    "failure_mode": None,
+                    "notes": "ICO 버블로 W5 급등. 94% 하락 후 장기 조정."
+                }
             },
             {
                 "id": "spx_2007_2009",
@@ -117,7 +152,294 @@ class PatternDatabase:
                 "outcome": "abc_correction",
                 "success": True,
                 "target_hit": 0.57,
-                "metadata": {"decline_depth": 0.57, "asset_type": "index"}
+                "metadata": {
+                    "pattern_type": "impulse",
+                    "decline_depth": 0.57,
+                    "asset_type": "index",
+                    "fib_ratios": {"w2_retrace": 0.86, "w3_to_w1": 1.26, "w5_to_w1": 0.73},
+                    "volume": "declining_in_w5",
+                    "market_condition": "housing_bubble_peak",
+                    "notes": "GFC 전 5파 완성. W5 절단(truncation) 가능성 있었음."
+                }
+            },
+            # ===== 2. Extended 5th Wave (5파 확장) =====
+            {
+                "id": "gold_2001_2011",
+                "symbol": "GOLD",
+                "start_date": "2001-04-02",
+                "end_date": "2011-09-06",
+                "waves": {"0": 255, "1": 730, "2": 540, "3": 1033, "4": 680, "5": 1921},
+                "outcome": "extended_5th",
+                "success": True,
+                "target_hit": 0.72,
+                "metadata": {
+                    "pattern_type": "impulse_extended_5th",
+                    "decline_depth": 0.45,
+                    "correction_duration_days": 1500,
+                    "fib_ratios": {"w5_to_w1_w3": 2.62, "w5_extension": 1.618},
+                    "volume": "w5_volume_surge_commodity",
+                    "market_condition": "qe_era_safe_haven",
+                    "notes": "W5가 W1-W3 합계의 1.618배 확장. 양적완화 시대 안전자산 수요."
+                }
+            },
+            {
+                "id": "tsla_2020_2021",
+                "symbol": "TSLA",
+                "start_date": "2020-03-18",
+                "end_date": "2021-11-04",
+                "waves": {"0": 72, "1": 502, "2": 330, "3": 900, "4": 563, "5": 1243},
+                "outcome": "extended_5th",
+                "success": True,
+                "target_hit": 0.65,
+                "metadata": {
+                    "pattern_type": "impulse_extended_5th",
+                    "decline_depth": 0.73,
+                    "fib_ratios": {"w5_to_w1": 1.58, "w5_to_w3": 1.19},
+                    "volume": "retail_fomo_w5",
+                    "market_condition": "pandemic_stimulus_growth",
+                    "failure_mode": None,
+                    "notes": "팬데믹 유동성 + 개인투자자 FOMO로 W5 확장. 73% 하락."
+                }
+            },
+            # ===== 3. Ending Diagonal (종결 대각선) =====
+            {
+                "id": "spx_2018_ending_diag",
+                "symbol": "SPX",
+                "start_date": "2016-02-11",
+                "end_date": "2018-01-26",
+                "waves": {"0": 1810, "1": 2400, "2": 2325, "3": 2490, "4": 2420, "5": 2872},
+                "outcome": "abc_correction",
+                "success": True,
+                "target_hit": 0.52,
+                "metadata": {
+                    "pattern_type": "ending_diagonal",
+                    "decline_depth": 0.20,
+                    "correction_duration_days": 30,
+                    "fib_ratios": {"overlap_w4_w1": True, "contracting": True},
+                    "volume": "declining_each_wave",
+                    "market_condition": "late_cycle_low_vol",
+                    "failure_mode": None,
+                    "notes": "종결 대각선 W5. 수렴형, 거래량 점감. 완성 후 2018 Q1 급락."
+                }
+            },
+            # ===== 4. Leading Diagonal (선행 대각선) =====
+            {
+                "id": "btc_2019_leading_diag",
+                "symbol": "BTC-USD",
+                "start_date": "2018-12-15",
+                "end_date": "2019-06-26",
+                "waves": {"0": 3200, "1": 5400, "2": 3700, "3": 9000, "4": 7500, "5": 14000},
+                "outcome": "new_supercycle",
+                "success": True,
+                "target_hit": 0.40,
+                "metadata": {
+                    "pattern_type": "leading_diagonal",
+                    "decline_depth": 0.46,
+                    "fib_ratios": {"overlap_w4_w1": False, "w3_to_w1": 2.41},
+                    "volume": "increasing_w1_to_w3",
+                    "market_condition": "bear_market_reversal",
+                    "notes": "약세장 바닥에서 선행 대각선으로 새 추세 시작. W1 위치에 출현."
+                }
+            },
+            # ===== 5. Zigzag (지그재그) =====
+            {
+                "id": "btc_2022_zigzag",
+                "symbol": "BTC-USD",
+                "start_date": "2021-11-10",
+                "end_date": "2022-11-21",
+                "waves": {"0": 69000, "1": 33000, "2": 48000, "3": 0, "4": 0, "5": 0},
+                "outcome": "abc_correction",
+                "success": True,
+                "target_hit": 0.77,
+                "metadata": {
+                    "pattern_type": "zigzag",
+                    "decline_depth": 0.77,
+                    "correction_duration_days": 376,
+                    "fib_ratios": {"b_retrace_of_a": 0.417, "c_extension_of_a": 1.36},
+                    "volume": "capitulation_in_c",
+                    "market_condition": "fed_tightening_luna_ftx",
+                    "notes": "A파 급락 → B파 38.2% 되돌림 → C파 확장 (LUNA/FTX 촉발). 교과서적 지그재그."
+                }
+            },
+            {
+                "id": "spx_2020_covid_zigzag",
+                "symbol": "SPX",
+                "start_date": "2020-02-19",
+                "end_date": "2020-03-23",
+                "waves": {"0": 3393, "1": 2855, "2": 3136, "3": 0, "4": 0, "5": 0},
+                "outcome": "abc_correction",
+                "success": True,
+                "target_hit": 0.95,
+                "metadata": {
+                    "pattern_type": "zigzag",
+                    "decline_depth": 0.34,
+                    "correction_duration_days": 33,
+                    "fib_ratios": {"b_retrace_of_a": 0.522, "c_extension_of_a": 1.618},
+                    "volume": "extreme_volume_c_wave",
+                    "market_condition": "pandemic_shock",
+                    "failure_mode": None,
+                    "notes": "코로나 충격 — 초고속 지그재그. C파 1.618 확장. VIX 82."
+                }
+            },
+            # ===== 6. Double Zigzag (이중 지그재그) =====
+            {
+                "id": "eth_2022_double_zigzag",
+                "symbol": "ETH-USD",
+                "start_date": "2021-11-10",
+                "end_date": "2022-06-18",
+                "waves": {"0": 4870, "1": 2160, "2": 3580, "3": 2100, "4": 3200, "5": 880},
+                "outcome": "abc_correction",
+                "success": True,
+                "target_hit": 0.82,
+                "metadata": {
+                    "pattern_type": "double_zigzag",
+                    "decline_depth": 0.82,
+                    "correction_duration_days": 220,
+                    "fib_ratios": {"x_retrace_of_w": 0.59, "y_similar_to_w": True},
+                    "volume": "two_capitulation_events",
+                    "market_condition": "terra_luna_contagion",
+                    "notes": "WXY 이중 지그재그. X파 59% 되돌림. W와 Y 비슷한 크기."
+                }
+            },
+            # ===== 7. Expanded Flat (확장형 플랫) =====
+            {
+                "id": "spx_2015_expanded_flat",
+                "symbol": "SPX",
+                "start_date": "2015-05-20",
+                "end_date": "2016-02-11",
+                "waves": {"0": 2135, "1": 1867, "2": 2135, "3": 0, "4": 0, "5": 0},
+                "outcome": "abc_correction",
+                "success": True,
+                "target_hit": 0.45,
+                "metadata": {
+                    "pattern_type": "expanded_flat",
+                    "decline_depth": 0.15,
+                    "correction_duration_days": 266,
+                    "fib_ratios": {"b_retrace_of_a": 1.00, "c_extension_of_a": 1.38},
+                    "volume": "increasing_in_c",
+                    "market_condition": "china_devaluation_oil_crash",
+                    "notes": "B파가 A 시작점 100% 되돌림. C파 138% 확장. 중국 위안 절하 + 유가 급락."
+                }
+            },
+            # ===== 8. Running Flat (러닝 플랫) =====
+            {
+                "id": "spx_2014_running_flat",
+                "symbol": "SPX",
+                "start_date": "2014-09-19",
+                "end_date": "2014-10-15",
+                "waves": {"0": 2019, "1": 1820, "2": 1965, "3": 0, "4": 0, "5": 0},
+                "outcome": "new_supercycle",
+                "success": True,
+                "target_hit": 0.80,
+                "metadata": {
+                    "pattern_type": "running_flat",
+                    "decline_depth": 0.10,
+                    "correction_duration_days": 26,
+                    "fib_ratios": {"b_retrace_of_a": 0.73, "c_less_than_a": True},
+                    "volume": "low_volume_c",
+                    "market_condition": "strong_uptrend_ebola_scare",
+                    "notes": "러닝 플랫: C파가 A 끝점 미달. 강한 상승추세 지속 신호. 에볼라 공포 후 급반등."
+                }
+            },
+            # ===== 9. Triangle (삼각형) =====
+            {
+                "id": "btc_2019_triangle",
+                "symbol": "BTC-USD",
+                "start_date": "2019-06-26",
+                "end_date": "2020-03-12",
+                "waves": {"0": 14000, "1": 6500, "2": 10500, "3": 6800, "4": 10100, "5": 3800},
+                "outcome": "abc_correction",
+                "success": False,
+                "target_hit": 0.20,
+                "metadata": {
+                    "pattern_type": "triangle",
+                    "decline_depth": 0.73,
+                    "fib_ratios": {"contracting": True, "e_wave_smallest": True},
+                    "volume": "declining_within_triangle",
+                    "market_condition": "pre_halving_consolidation",
+                    "failure_mode": "pandemic_broke_triangle",
+                    "notes": "수렴형 삼각형이 코로나 충격으로 E파 하향 이탈. 삼각형 실패 사례."
+                }
+            },
+            {
+                "id": "gold_2013_triangle",
+                "symbol": "GOLD",
+                "start_date": "2013-06-28",
+                "end_date": "2015-07-20",
+                "waves": {"0": 1180, "1": 1430, "2": 1185, "3": 1390, "4": 1130, "5": 1080},
+                "outcome": "abc_correction",
+                "success": True,
+                "target_hit": 0.50,
+                "metadata": {
+                    "pattern_type": "triangle",
+                    "decline_depth": 0.15,
+                    "correction_duration_days": 752,
+                    "fib_ratios": {"contracting": True, "a_b_c_d_e_narrowing": True},
+                    "volume": "steadily_declining",
+                    "market_condition": "post_qe_taper_tantrum",
+                    "notes": "수렴형 삼각형. 2년간 수렴 후 하향 돌파. 거래량 점감 패턴."
+                }
+            },
+            # ===== 10. Complex Correction WXY (복합 조정) =====
+            {
+                "id": "spx_2000_2003_complex",
+                "symbol": "SPX",
+                "start_date": "2000-03-24",
+                "end_date": "2003-03-12",
+                "waves": {"0": 1553, "1": 1210, "2": 1530, "3": 775, "4": 0, "5": 0},
+                "outcome": "abc_correction",
+                "success": True,
+                "target_hit": 0.50,
+                "metadata": {
+                    "pattern_type": "complex_wxy",
+                    "decline_depth": 0.50,
+                    "correction_duration_days": 1084,
+                    "fib_ratios": {"x_retrace": 0.93, "y_exceeds_w": True},
+                    "volume": "multiple_capitulations",
+                    "market_condition": "dotcom_bust",
+                    "notes": "WXY 복합 조정. W=지그재그, X=플랫, Y=지그재그. 닷컴 버블 붕괴."
+                }
+            },
+            # ===== 11. Impulse Failure — Truncated 5th (5파 절단) =====
+            {
+                "id": "nikkei_1989_truncation",
+                "symbol": "NI225",
+                "start_date": "1982-10-01",
+                "end_date": "1989-12-29",
+                "waves": {"0": 6849, "1": 13000, "2": 9900, "3": 33000, "4": 21000, "5": 38957},
+                "outcome": "abc_correction",
+                "success": True,
+                "target_hit": 0.80,
+                "metadata": {
+                    "pattern_type": "impulse",
+                    "decline_depth": 0.82,
+                    "correction_duration_days": 9000,
+                    "fib_ratios": {"w3_to_w1": 3.75, "w5_to_w1": 2.92},
+                    "volume": "w3_peak_volume",
+                    "market_condition": "asset_bubble_peak",
+                    "failure_mode": "extended_correction_34_years",
+                    "notes": "5파 완성 후 34년 조정. 극단적 장기 ABC. 자산 버블의 극단 사례."
+                }
+            },
+            # ===== 12. Triple Zigzag — 희귀 패턴 =====
+            {
+                "id": "djia_1966_1974_triple_zz",
+                "symbol": "DJIA",
+                "start_date": "1966-02-09",
+                "end_date": "1974-12-06",
+                "waves": {"0": 1000, "1": 740, "2": 990, "3": 630, "4": 850, "5": 570},
+                "outcome": "abc_correction",
+                "success": True,
+                "target_hit": 0.43,
+                "metadata": {
+                    "pattern_type": "triple_zigzag",
+                    "decline_depth": 0.43,
+                    "correction_duration_days": 3222,
+                    "fib_ratios": {"x1_retrace": 0.962, "x2_retrace": 0.687},
+                    "volume": "episodic_spikes",
+                    "market_condition": "stagflation_era",
+                    "notes": "WXYXZ 삼중 지그재그. 8년에 걸친 깊은 조정. 스태그플레이션 시대."
+                }
             }
         ]
         
