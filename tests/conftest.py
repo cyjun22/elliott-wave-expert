@@ -49,6 +49,26 @@ if _PKG_NAME not in sys.modules:
             _lt_spec.loader.exec_module(_lt_mod)
             _elliott.live_tracker = _lt_mod
 
+    # 새 모듈들도 experts.elliott 네임스페이스에 등록 (의존성 순서 준수)
+    _new_mods_ordered = [
+        'scenario_tree', 'adaptive_tracker', 'wave_scenarios',
+        'timeframe_linker', 'wave_chart',
+        'forecast_engine', 'realtime_loop',
+    ]
+    for _new_mod in _new_mods_ordered:
+        _new_path = os.path.join(_PROJECT_DIR, f"{_new_mod}.py")
+        if os.path.exists(_new_path):
+            _new_fqn = f"experts.elliott.{_new_mod}"
+            if _new_fqn not in sys.modules:
+                _new_spec = importlib.util.spec_from_file_location(_new_fqn, _new_path)
+                _new_mod_obj = importlib.util.module_from_spec(_new_spec)
+                sys.modules[_new_fqn] = _new_mod_obj
+                try:
+                    _new_spec.loader.exec_module(_new_mod_obj)
+                    setattr(_elliott, _new_mod, _new_mod_obj)
+                except Exception as _e:
+                    del sys.modules[_new_fqn]  # 실패시 캐시 제거
+
     for _mod_name in ["patterns", "validation", "targets", "core", "wave_scenarios"]:
         _mod_path = os.path.join(_PROJECT_DIR, f"{_mod_name}.py")
         if os.path.exists(_mod_path):

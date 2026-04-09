@@ -1,7 +1,7 @@
 """
-Elliott Wave Candlestick Chart
-==============================
-봉차트(캔들스틱) 위에 파동 카운트를 시각적으로 표시하는 모듈.
+Elliott Wave Candlestick Chart + Forecast Paths
+==================================================
+봉차트(캔들스틱) 위에 파동 카운트 + 미래 시나리오 경로를 시각화.
 
 핵심 기능:
 - OHLCV 캔들스틱 차트 (다크 테마)
@@ -11,6 +11,7 @@ Elliott Wave Candlestick Chart
 - 목표가 영역 (피보나치)
 - 거래량 서브플롯
 - 대안 시나리오 오버레이 (선택)
+- ★ 미래 시나리오 예측 경로 (점선 + 확률 라벨)
 
 Usage:
     # core.py 분석 결과에서
@@ -99,6 +100,7 @@ THEME = {
     "invalidation": "#f85149",
     "target_zone": "#3fb95022",
     "target_line": "#3fb950",
+    "forecast_colors": ["#58a6ff", "#f0883e", "#a371f7", "#56d364"],
 }
 
 
@@ -133,6 +135,7 @@ class WaveChart:
         show_targets: bool = True,
         show_invalidation: bool = True,
         show_alternatives: bool = False,
+        forecast_paths: List[Any] = None,
         title: str = None,
     ) -> str:
         """
@@ -204,6 +207,10 @@ class WaveChart:
 
         for i, alt_waves in enumerate(alt_wave_sets):
             self._draw_alternative_waves(ax_price, alt_waves, alpha=0.3)
+
+        # 미래 시나리오 경로 (점선)
+        if forecast_paths:
+            self._draw_forecast_paths(ax_price, forecast_paths, df_work)
 
         # 타이틀
         self._draw_title(ax_price, symbol, timeframe, pattern_name, confidence, title)
@@ -405,6 +412,117 @@ class WaveChart:
                 fontsize=8, color=THEME["text_dim"],
                 zorder=14,
             )
+
+    # ── Forecast Paths ───────────────────
+
+    def _draw_forecast_paths(
+        self, ax: plt.Axes, forecast_paths: List[Any], df: pd.DataFrame
+    ):
+        """
+        미래 시나리오 예측 경로를 점선으로 표시.
+
+        각 경로는:
+          - 점선 (두께 = 확률 비례)
+          - 경로 끝에 시나리오명 + 확률 라벨
+          - 무효화 레벨 점선
+
+        Args:
+            forecast_paths: ForecastPath 객체 리스트 또는 딝셔너리 리스트
+        """
+        colors = THEME["forecast_colors"]
+        last_date = mdates.date2num(df.index[-1])
+
+        for idx, fp in enumerate(forecast_paths[:4]):  # 최대 4개
+            color = colors[idx % len(colors)]
+
+            # ForecastPath 객체 or dict
+            if hasattr(fp, 'path_points'):
+                points = fp.path_points
+                name = fp.scenario_name
+                prob = fp.probability
+                inv_price = fp.invalidation_price
+            else:
+                points = fp.get('path_points', [])
+                name = fp.get('scenario_name', f'Scenario {idx+1}')
+                prob = fp.get('probability', 0)
+                inv_price = fp.get('invalidation_price', 0)
+
+            if not points:
+                continue
+
+            # 날짜/가격 추출
+            xs = []
+            ys = []
+            labels = []
+            for pt in points:
+                try:
+                    dt = pd.to_datetime(pt.get('date', pt.get('label', '')))
+                    xs.append(mdates.date2num(dt))
+                except Exception:
+                    # 날짜 파싱 실패 → 마지막 날짜에서 오프셋
+                    xs.append(last_date + (idx + 1) * 10 + len(xs) * 20)
+                ys.append(pt.get('price', 0))
+                labels.append(pt.get('label', ''))
+
+            if len(xs) < 2:
+                continue
+
+            # 점선 두께: 확률에 비례 (0.5~3.0)
+            line_width = max(0.5, min(3.0, prob * 5))
+            alpha = max(0.3, min(0.9, prob + 0.2))
+
+            # 경로 점선
+            ax.plot(
+                xs, ys,
+                color=color, linewidth=line_width, alpha=alpha,
+                linestyle='--', zorder=7,
+                solid_capstyle='round', dash_capstyle='round',
+            )
+
+            # 경로 끝점에 마커
+            ax.scatter(
+                xs[-1], ys[-1], s=60, c=color,
+                edgecolors='white', linewidths=1, alpha=alpha,
+                marker='D', zorder=8,
+            )
+
+            # 시나리오명 + 확률 라벨 (경로 끝점)
+            ax.annotate(
+                f"{name}\n{prob:.0%}",
+                (xs[-1], ys[-1]),
+                xytext=(12, 0), textcoords='offset points',
+                fontsize=8, fontweight='bold',
+                color=color, alpha=alpha,
+                va='center', ha='left',
+                bbox=dict(
+                    boxstyle='round,pad=0.3',
+                    facecolor=THEME['panel'],
+                    edgecolor=color,
+                    alpha=0.8,
+                ),
+                zorder=15,
+            )
+
+            # 경로 포인트 라벨
+            for i, (x, y, lbl) in enumerate(zip(xs, ys, labels)):
+                if i == 0:  # 첫 포인트(현재)는 생략
+                    continue
+                if lbl:
+                    ax.annotate(
+                        lbl, (x, y),
+                        xytext=(0, 12), textcoords='offset points',
+                        fontsize=7, color=color, alpha=alpha * 0.8,
+                        ha='center', va='bottom',
+                        zorder=12,
+                    )
+
+            # 무효화 레벨 (연하게)
+            if inv_price and inv_price > 0:
+                ax.axhline(
+                    y=inv_price, xmin=0.7, xmax=1.0,
+                    linestyle=':', color=color, linewidth=0.8,
+                    alpha=0.3, zorder=4,
+                )
 
     # ── Targets ─────────────────────────────
 
